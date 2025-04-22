@@ -15,6 +15,16 @@ public class Haroldthe4thScript : MonoBehaviour
     [Header("Camera")]
     [SerializeField] private GameObject followCameraObject;
 
+    [Header("Attack")]
+    public Transform attackPoint;         // assign in Inspector
+    public float attackRange = 0.5f;
+    public int attackDamage = 1;
+    public LayerMask enemyLayers;       // layer(s) your enemies sit on
+
+    // internal cooldown/state
+    private bool isAttacking = false;
+
+
     // Component references
     private Rigidbody2D rb;
     private Animator animator;
@@ -127,6 +137,11 @@ public class Haroldthe4thScript : MonoBehaviour
         if (Input.GetButtonDown("Fire1") && dashesAvailable > 0)
         {
             ExecuteDash();
+        }
+
+        if (Input.GetButtonDown("Fire2") && !isAttacking)
+        {
+            StartCoroutine(Attack());
         }
 
         // Update animation
@@ -440,6 +455,36 @@ public class Haroldthe4thScript : MonoBehaviour
 
         yield return new WaitForSeconds(stats.dashingCooldown);
     }
+
+    private IEnumerator Attack()
+    {
+        isAttacking = true;
+        canMove = false;            // freeze movement
+        animator.SetTrigger("Attack");  // you need an “Attack” trigger in your Animator
+
+        // wait until the “hit frame” of your animation (tweak to match your clip)
+        yield return new WaitForSeconds(0.1f);
+
+        // detect enemies in range of the swing
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(
+            attackPoint.position,
+            attackRange,
+            enemyLayers
+        );
+        foreach (var enemy in hitEnemies)
+        {
+            // assumes your enemies have a script with a TakeDamage(int) method
+            enemy.GetComponent<Enemy>()?.TakeDamage(attackDamage);
+        }
+
+        // wait for the rest of the swing animation
+        yield return new WaitForSeconds(0.3f);
+
+        canMove = true;
+        isAttacking = false;
+    }
+
+
 
     private void HandleKnockback()
     {
