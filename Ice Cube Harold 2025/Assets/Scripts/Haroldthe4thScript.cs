@@ -459,8 +459,8 @@ public class Haroldthe4thScript : MonoBehaviour
     private IEnumerator Attack()
     {
         isAttacking = true;
-        canMove = false;            // freeze movement
-        animator.SetTrigger("Attack");  // you need an “Attack” trigger in your Animator
+        //canMove = false;            // freeze movement
+        //animator.SetTrigger("Attack");  // you need an “Attack” trigger in your Animator
 
         // wait until the “hit frame” of your animation (tweak to match your clip)
         yield return new WaitForSeconds(0.1f);
@@ -480,7 +480,7 @@ public class Haroldthe4thScript : MonoBehaviour
         // wait for the rest of the swing animation
         yield return new WaitForSeconds(0.3f);
 
-        canMove = true;
+        //canMove = true;
         isAttacking = false;
     }
 

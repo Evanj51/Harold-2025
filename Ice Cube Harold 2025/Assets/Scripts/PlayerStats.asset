@@ -26,9 +26,9 @@ MonoBehaviour:
   dashingPower: 24
   dashingTime: 0.2
   dashingCooldown: 1
-  upDashingPower: 40
+  upDashingPower: 55
   downDashingPower: -24
-  diagonalDashingPower: 40
+  diagonalDashingPower: 50
   diagonalDownDashingPower: -24
   dashGravityScale: 0
   upDashGravityScale: 20
