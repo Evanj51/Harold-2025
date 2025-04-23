@@ -16,6 +16,15 @@ public class Haroldthe4thScript : MonoBehaviour
     [Header("Camera")]
     [SerializeField] private GameObject followCameraObject;
 
+    [Header("Attack")]
+    public Transform attackPoint;         // assign in Inspector
+    public float attackRange = 0.5f;
+    public int attackDamage = 1;
+    public LayerMask enemyLayers;       // layer(s) your enemies sit on
+
+    // internal cooldown/state
+    private bool isAttacking = false;
+
     // Component references
     private Rigidbody2D rb;
     private Animator animator;
@@ -57,6 +66,8 @@ public class Haroldthe4thScript : MonoBehaviour
     private bool knockFromRight;
 
 
+
+
     public void Awake()
     {
         controls = new PlayerControls();
@@ -74,6 +85,10 @@ public class Haroldthe4thScript : MonoBehaviour
         
         // Set up dash controls
         controls.Gameplay.Dash.performed += OnDashPerformed;
+
+        // Set up attack controls
+        controls.Gameplay.Attack.performed += OnAttackPerformed;
+
     }
 
     private void OnDisable()
@@ -84,6 +99,8 @@ public class Haroldthe4thScript : MonoBehaviour
         controls.Gameplay.Jump.canceled -= OnJumpCanceled;
         controls.Gameplay.Dash.performed -= OnDashPerformed;
         controls.Gameplay.Disable();
+        controls.Gameplay.Attack.performed -= OnAttackPerformed;
+
     }
 
     private void Start()
@@ -244,6 +261,15 @@ public class Haroldthe4thScript : MonoBehaviour
         }
     }
 
+    private void OnAttackPerformed(InputAction.CallbackContext context)
+    {
+        if (!isAttacking) // Optional cooldown logic
+        {
+            StartCoroutine(PerformAttack());
+        }
+    }
+
+
     private bool IsGrounded()
     {
         return Physics2D.OverlapCircle(groundCheck.position, 0.45f, groundLayer);
@@ -396,6 +422,27 @@ public class Haroldthe4thScript : MonoBehaviour
         }
     }
 
+    private IEnumerator PerformAttack()
+    {
+        isAttacking = true;
+        //animator.SetTrigger("Attack"); // Assuming you have an "Attack" trigger in the Animator
+
+        // Delay to sync with animation if needed
+        yield return new WaitForSeconds(0.1f); // Adjust based on your animation windup
+
+        // Detect enemies in range
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
+
+        foreach (Collider2D enemy in hitEnemies)
+        {
+            // Call your enemy's damage function
+            enemy.GetComponent<Enemy>()?.TakeDamage(attackDamage);
+        }
+
+        yield return new WaitForSeconds(0.3f); // Optional cooldown time
+        isAttacking = false;
+    }
+
     private IEnumerator Dash()
     {
         // Setup dash
@@ -489,6 +536,8 @@ public class Haroldthe4thScript : MonoBehaviour
         yield return new WaitForSeconds(stats.dashingCooldown);
     }
 
+
+
     private void HandleKnockback()
     {
         if (knockbackCounter <= 0)
@@ -530,5 +579,10 @@ public class Haroldthe4thScript : MonoBehaviour
         // Ground check ray
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, Vector2.down * 0.5f);
+
+        // Attack point gizmo
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+
     }
 }
