@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Haroldthe4thScript : MonoBehaviour
 {
@@ -18,8 +19,12 @@ public class Haroldthe4thScript : MonoBehaviour
     // Component references
     private Rigidbody2D rb;
     private Animator animator;
-   // fix later private FollowCameraObject cameraController;
+    // fix later private FollowCameraObject cameraController;
     private float fallSpeedYDampingChangeThreshold;
+
+    //Player Controls
+    private PlayerControls controls;
+    private Vector2 moveInput;
 
     // Movement state
     private float horizontal;
@@ -50,6 +55,36 @@ public class Haroldthe4thScript : MonoBehaviour
     // Knockback state
     private float knockbackCounter;
     private bool knockFromRight;
+
+
+    public void Awake()
+    {
+        controls = new PlayerControls();
+    }
+
+    private void OnEnable()
+    {
+        controls.Gameplay.Enable();
+        controls.Gameplay.Move.performed += OnMovePerformed;
+        controls.Gameplay.Move.canceled += OnMoveCanceled;
+        
+        // Set up jump controls
+        controls.Gameplay.Jump.performed += OnJumpPerformed;
+        controls.Gameplay.Jump.canceled += OnJumpCanceled;
+        
+        // Set up dash controls
+        controls.Gameplay.Dash.performed += OnDashPerformed;
+    }
+
+    private void OnDisable()
+    {
+        controls.Gameplay.Move.performed -= OnMovePerformed;
+        controls.Gameplay.Move.canceled -= OnMoveCanceled;
+        controls.Gameplay.Jump.performed -= OnJumpPerformed;
+        controls.Gameplay.Jump.canceled -= OnJumpCanceled;
+        controls.Gameplay.Dash.performed -= OnDashPerformed;
+        controls.Gameplay.Disable();
+    }
 
     private void Start()
     {
@@ -85,9 +120,9 @@ public class Haroldthe4thScript : MonoBehaviour
             return;
         }
 
-        // Get input
-        horizontal = Input.GetAxisRaw("Horizontal");
-        vertical = Input.GetAxisRaw("Vertical");
+        // Update horizontal and vertical from moveInput
+        horizontal = moveInput.x;
+        vertical = moveInput.y;
 
         // Check ground state
         isGrounded = IsGrounded();
@@ -104,9 +139,6 @@ public class Haroldthe4thScript : MonoBehaviour
         // Update camera damping based on fall speed
         // UpdateCameraDamping();
 
-        // Handle jumps
-        HandleJumpInput();
-
         // Handle wall interactions
         CheckWallContacts();
         HandleWallSliding();
@@ -121,12 +153,6 @@ public class Haroldthe4thScript : MonoBehaviour
         else
         {
             canRegularDash = true;
-        }
-
-        // Handle dash input
-        if (Input.GetButtonDown("Fire1") && dashesAvailable > 0)
-        {
-            ExecuteDash();
         }
 
         // Update animation
@@ -158,6 +184,66 @@ public class Haroldthe4thScript : MonoBehaviour
         rb.AddForce(movement * Vector2.right);
     }
 
+    private void OnMovePerformed(InputAction.CallbackContext context)
+    {
+        moveInput = context.ReadValue<Vector2>();
+    }
+
+    private void OnMoveCanceled(InputAction.CallbackContext context)
+    {
+        moveInput = Vector2.zero;
+    }
+    
+    private void OnJumpPerformed(InputAction.CallbackContext context)
+    {
+        jumpButtonPressTime = Time.time;
+        isHoldingJumpButton = true;
+        
+        // Normal jump
+        if (isGrounded)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, stats.jumpingPower);
+        }
+        // Wall jump
+        else if ((isTouchingLeftWall || isTouchingRightWall) && !isGrounded)
+        {
+            // Replenish dash when wall jumping
+            dashesAvailable++;
+
+            isWallJumping = true;
+
+            // Cap jump hold time for wall jumps
+            float effectiveJumpHoldTime = Mathf.Min(jumpButtonHoldTime, stats.wallJumpDuration);
+
+            Invoke(nameof(StopWallJumping), effectiveJumpHoldTime * 1.5f);
+
+            // Apply wall jump force
+            rb.linearVelocity = new Vector2(stats.wallJumpSidewaysPower * wallJumpDirection, stats.wallJumpUpPower);
+        }
+        
+        rb.gravityScale = stats.fallingGravityScale; // Higher gravity while jumping
+    }
+    
+    private void OnJumpCanceled(InputAction.CallbackContext context)
+    {
+        isHoldingJumpButton = false;
+        jumpButtonHoldTime = Time.time - jumpButtonPressTime;
+        
+        // Variable jump height
+        if (rb.linearVelocity.y > 0f)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * stats.jumpCutMultiplier);
+        }
+    }
+    
+    private void OnDashPerformed(InputAction.CallbackContext context)
+    {
+        if (dashesAvailable > 0)
+        {
+            ExecuteDash();
+        }
+    }
+
     private bool IsGrounded()
     {
         return Physics2D.OverlapCircle(groundCheck.position, 0.45f, groundLayer);
@@ -172,18 +258,24 @@ public class Haroldthe4thScript : MonoBehaviour
             localScale.x *= -1f;
             transform.localScale = localScale;
 
-           /* // Update camera facing
-            if (cameraController != null)
-            {
-                cameraController.CallFlip();
-            } */
+            /* // Update camera facing
+             if (cameraController != null)
+             {
+                 cameraController.CallFlip();
+             } */
         }
     }
 
     private void UpdateAnimation()
     {
         animator.SetFloat("Speed", Mathf.Abs(horizontal));
-        animator.SetBool("IsAttack", Input.GetKeyDown(KeyCode.O));
+        // Replace with new input system for attack later
+        bool isAttacking = false;
+        if (controls.Gameplay.Attack.IsPressed())
+        {
+            isAttacking = true;
+        }
+        animator.SetBool("IsAttack", isAttacking);
     }
 
     /*private void UpdateCameraDamping()
@@ -227,35 +319,6 @@ public class Haroldthe4thScript : MonoBehaviour
         }
     } */
 
-    private void HandleJumpInput()
-    {
-        // Normal jump
-        if (Input.GetButtonDown("Jump") && isGrounded)
-        {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, stats.jumpingPower);
-        }
-
-        // Variable jump height
-        if (Input.GetButtonUp("Jump") && rb.linearVelocity.y > 0f)
-        {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * stats.jumpCutMultiplier);
-        }
-
-        // Track jump button press time for wall jumps
-        if (Input.GetButtonDown("Jump"))
-        {
-            jumpButtonPressTime = Time.time;
-            isHoldingJumpButton = true;
-            rb.gravityScale = stats.fallingGravityScale; // Higher gravity while jumping
-        }
-
-        if (Input.GetButtonUp("Jump"))
-        {
-            isHoldingJumpButton = false;
-            jumpButtonHoldTime = Time.time - jumpButtonPressTime;
-        }
-    }
-
     private void CheckWallContacts()
     {
         isTouchingLeftWall = Physics2D.OverlapBox(
@@ -293,22 +356,7 @@ public class Haroldthe4thScript : MonoBehaviour
 
     private void HandleWallJump()
     {
-        // Wall jump activation
-        if (Input.GetButtonDown("Jump") && (isTouchingLeftWall || isTouchingRightWall) && !isGrounded)
-        {
-            // Replenish dash when wall jumping
-            dashesAvailable++;
-
-            isWallJumping = true;
-
-            // Cap jump hold time for wall jumps
-            float effectiveJumpHoldTime = Mathf.Min(jumpButtonHoldTime, stats.wallJumpDuration);
-
-            Invoke(nameof(StopWallJumping), effectiveJumpHoldTime * 1.5f);
-
-            // Apply wall jump force
-            rb.linearVelocity = new Vector2(stats.wallJumpSidewaysPower * wallJumpDirection, stats.wallJumpUpPower);
-        }
+        // Wall jump is now handled in OnJumpPerformed
     }
 
     private void StopWallJumping()
