@@ -21,16 +21,16 @@ MonoBehaviour:
   fallingGravityScale: 4
   wallJumpSidewaysPower: 4
   wallJumpUpPower: 20
-  wallSlideSpeed: 0.1
+  wallSlideSpeed: 0.98
   wallJumpDuration: 0.075
   dashingPower: 24
   dashingTime: 0.2
   dashingCooldown: 1
-  upDashingPower: 40
+  upDashingPower: 31
   downDashingPower: -24
-  diagonalDashingPower: 40
+  diagonalDashingPower: 31
   diagonalDownDashingPower: -24
   dashGravityScale: 0
-  upDashGravityScale: 20
+  upDashGravityScale: 10
   knockbackForce: 10
   knockbackDuration: 0.5

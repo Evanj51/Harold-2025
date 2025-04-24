@@ -348,11 +348,11 @@ public class Haroldthe4thScript : MonoBehaviour
     private void CheckWallContacts()
     {
         isTouchingLeftWall = Physics2D.OverlapBox(
-            new Vector2(transform.position.x - 0.65f, transform.position.y),
+            new Vector2(transform.position.x - 0.5f, transform.position.y),
             new Vector2(0.2f, 0.6f), 0f, groundLayer);
 
         isTouchingRightWall = Physics2D.OverlapBox(
-            new Vector2(transform.position.x + 0.65f, transform.position.y),
+            new Vector2(transform.position.x + 0.5f, transform.position.y),
             new Vector2(0.2f, 0.6f), 0f, groundLayer);
 
         if (isTouchingLeftWall)
@@ -573,8 +573,8 @@ public class Haroldthe4thScript : MonoBehaviour
     {
         // Wall detection boxes
         Gizmos.color = Color.blue;
-        Gizmos.DrawCube(new Vector2(transform.position.x - 0.65f, transform.position.y), new Vector2(0.2f, 0.6f));
-        Gizmos.DrawCube(new Vector2(transform.position.x + 0.65f, transform.position.y), new Vector2(0.2f, 0.6f));
+        Gizmos.DrawCube(new Vector2(transform.position.x - 0.5f, transform.position.y), new Vector2(0.2f, 0.6f));
+        Gizmos.DrawCube(new Vector2(transform.position.x + 0.5f, transform.position.y), new Vector2(0.2f, 0.6f));
 
         // Ground check ray
         Gizmos.color = Color.red;
